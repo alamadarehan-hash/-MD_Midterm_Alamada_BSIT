@@ -157,7 +157,7 @@ dart run main.dart
 ### Using DartPad
 
 
-1. Visit [DartPad](https://dartpad.dev/).
+1. Visit [GDB](https://onlinegdb.com).
 2. Select the Dart console environment.
 3. Open or paste the contents of `main.dart`.
 4. Run the application.
