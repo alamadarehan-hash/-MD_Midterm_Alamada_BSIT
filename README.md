@@ -2,10 +2,10 @@
 
 
 ## Student Information
-Name: Rehan
-Section: BSIT3.8
-Subject: Mobile Development
-Examination: Midterm Laboratory Examination
+- Name: Rehan T. Alamada
+- Section: BSIT3.8
+- Subject: Mobile Development
+- Examination: Midterm Laboratory Examination
 ## Application Description
 
 
