@@ -1,409 +1,236 @@
 import 'dart:io';
 
-
 mixin TimestampMixin {
   DateTime createdAt = DateTime.now();
-
-
-  String getDateCreated() {
-    return createdAt.toString().substring(0, 19);
-  }
+  String get timestamp => createdAt.toString();
 }
-
 
 abstract class CenterRecord with TimestampMixin {
-  int id;
-  String name;
+  String _id;
+  String _name;
+  CenterRecord(this._id, this._name);
+  String get id => _id;
+  String get name => _name;
 
-
-  CenterRecord(this.id, this.name);
-
-
-  void displayDetails();
+  set name(String value) {
+    if (value.trim().isNotEmpty) {
+      _name = value.trim();
+    }
+  }
+  String displayDetails();
 }
-
 
 class LearningResource extends CenterRecord {
-  String _category;
-  int _availableCopies;
-
-
+  String category;
+  bool isBorrowed = false;
   LearningResource(
-    int id,
-    String name,
-    String category,
-    int availableCopies,
-  )   : _category = category,
-        _availableCopies = availableCopies,
-        super(id, name);
-
-
-  String get category => _category;
-
-
-  int get availableCopies => _availableCopies;
-
-
-  void borrowResource() {
-    if (_availableCopies > 0) {
-      _availableCopies--;
-      print('Resource borrowed successfully!');
-    } else {
-      print('Sorry, no available copies.');
-    }
-  }
-
-
-  void returnResource() {
-    _availableCopies++;
-    print('Resource returned successfully!');
-  }
-
+    String id,
+    String title,
+    this.category,
+  ) : super(id, title);
 
   @override
-  void displayDetails() {
-    print('--------------------------------');
-    print('Resource ID: $id');
-    print('Resource Name: $name');
-    print('Category: $_category');
-    print('Available Copies: $_availableCopies');
-    print('Date Added: ${getDateCreated()}');
+  String displayDetails() {
+    return 'Resource ID: $id | Title: $name | '
+        'Category: $category | '
+        'Status: ${isBorrowed ? "Borrowed" : "Available"}';
   }
 }
-
 
 class Participant extends CenterRecord {
-  String _email;
-  int _borrowedResources = 0;
-
-
+  String contactNumber;
   Participant(
-    int id,
+    String id,
     String name,
-    String email,
-  )   : _email = email,
-        super(id, name);
-
-
-  String get email => _email;
-
-
-  int get borrowedResources => _borrowedResources;
-
-
-  void borrowItem() {
-    _borrowedResources++;
-  }
-
-
-  void returnItem() {
-    if (_borrowedResources > 0) {
-      _borrowedResources--;
-    }
-  }
-
+    this.contactNumber,
+  ) : super(id, name);
 
   @override
-  void displayDetails() {
-    print('--------------------------------');
-    print('Participant ID: $id');
-    print('Participant Name: $name');
-    print('Email: $_email');
-    print('Borrowed Resources: $_borrowedResources');
-    print('Registration Date: ${getDateCreated()}');
+  String displayDetails() {
+    return 'Participant ID: $id | Name: $name | '
+        'Contact: $contactNumber';
   }
 }
 
+class LearningCenter {
+  final List<LearningResource> resources = [];
+  final List<Participant> participants = [];
+  final Map<String, LearningResource> resourceMap = {};
+  final Map<String, Participant> participantMap = {};
 
-List<LearningResource> resources = [];
-List<Participant> participants = [];
+  bool addResource(
+    String id,
+    String title,
+    String category,
+  ) {
+    if (id.isEmpty || title.isEmpty || category.isEmpty) {
+      return false;
+    }
+    if (resourceMap.containsKey(id)) {
+      return false;
+    }
+
+    LearningResource resource =
+        LearningResource(id, title, category);
+    resources.add(resource);
+    resourceMap[id] = resource;
+
+    return true;
+  }
+
+  bool registerParticipant(
+    String id,
+    String name,
+    String contact,
+  ) {
+    if (id.isEmpty || name.isEmpty || contact.isEmpty) {
+      return false;
+    }
+    if (participantMap.containsKey(id)) {
+      return false;
+    }
+
+    Participant participant =
+        Participant(id, name, contact);
+    participants.add(participant);
+    participantMap[id] = participant;
+
+    return true;
+  }
 
 
-Map<int, LearningResource> resourceMap = {};
-Map<int, Participant> participantMap = {};
+  String borrowResource(String resourceId, String participantId) {
+    LearningResource? resource = resourceMap[resourceId];
+    Participant? participant = participantMap[participantId];
 
+    if (resource == null) {
+      return 'Resource not found.';
+    }
+    if (participant == null) {
+      return 'Participant not found.';
+    }
+    if (resource.isBorrowed) {
+      return 'Resource is already borrowed.';
+    }
+    resource.isBorrowed = true;
+
+    return '${participant.name} successfully borrowed ${resource.name}.';
+  }
+
+  String returnResource(String resourceId) {
+    LearningResource? resource = resourceMap[resourceId];
+
+    if (resource == null) {
+      return 'Resource not found.';
+    }
+    if (!resource.isBorrowed) {
+      return 'Resource is not currently borrowed.';
+    }
+    resource.isBorrowed = false;
+
+    return '${resource.name} successfully returned.';
+  }
+
+
+  void viewRecords() {
+    print('\n========== LEARNING RESOURCES ==========');
+    if (resources.isEmpty) {
+      print('No learning resources registered.');
+    } else {
+      for (CenterRecord record in resources) {
+        print(record.displayDetails());
+      }
+    }
+
+    print('\n========== PARTICIPANTS ==========');
+    if (participants.isEmpty) {
+      print('No participants registered.');
+    } else {
+      for (CenterRecord record in participants) {
+        print(record.displayDetails());
+      }
+    }
+    print('\nTotal Resources: ${resources.length}');
+    print('Total Participants: ${participants.length}');
+    int available = resources.where((r) => !r.isBorrowed).length;
+    print('Available Resources: $available');
+    print('Borrowed Resources: ${resources.length - available}');
+  }
+}
 
 String getInput(String message) {
-  while (true) {
-    stdout.write(message);
-    String? input = stdin.readLineSync();
-
-
-    if (input != null && input.trim().isNotEmpty) {
-      return input.trim();
-    }
-
-
-    print('Invalid input! Please enter a value.');
-  }
-}
-
-
-int getInteger(String message) {
-  while (true) {
-    String input = getInput(message);
-
-
-    try {
-      int number = int.parse(input);
-
-
-      if (number >= 0) {
-        return number;
-      }
-
-
-      print('Please enter a non-negative number.');
-    } catch (e) {
-      print('Invalid number! Please try again.');
-    }
-  }
-}
-
-
-void addResource() {
-  print('\nADD LEARNING RESOURCE');
-
-
-  int id = getInteger('Enter Resource ID: ');
-
-
-  if (resourceMap.containsKey(id)) {
-    print('Resource ID already exists!');
-    return;
-  }
-
-
-  String name = getInput('Enter Resource Name: ');
-  String category = getInput('Enter Resource Category: ');
-  int copies = getInteger('Enter Available Copies: ');
-
-
-  LearningResource resource =
-      LearningResource(id, name, category, copies);
-
-
-  resources.add(resource);
-  resourceMap[id] = resource;
-
-
-  print('\nLearning resource added successfully!');
-}
-
-
-void registerParticipant() {
-  print('\nREGISTER PARTICIPANT ');
-
-
-  int id = getInteger('Enter Participant ID: ');
-
-
-  if (participantMap.containsKey(id)) {
-    print('Participant ID already exists!');
-    return;
-  }
-
-
-  String name = getInput('Enter Participant Name: ');
-  String email = getInput('Enter Participant Email: ');
-
-
-  if (!email.contains('@') || !email.contains('.')) {
-    print('Invalid email address!');
-    return;
-  }
-
-
-  Participant participant = Participant(id, name, email);
-
-
-  participants.add(participant);
-  participantMap[id] = participant;
-
-
-  print('\nParticipant registered successfully!');
-}
-
-
-void viewRecords() {
-  print('\nCOMMUNITY LEARNING CENTER RECORDS');
-
-
-  if (resources.isEmpty && participants.isEmpty) {
-    print('No records available.');
-    return;
-  }
-
-
-  // Polymorphism using shared parent class
-  List<CenterRecord> allRecords = [
-    ...resources,
-    ...participants
-  ];
-
-
-  for (CenterRecord record in allRecords) {
-    record.displayDetails();
-  }
-
-
-  print('--------------------------------');
-  print('Total Resources: ${resources.length}');
-  print('Total Participants: ${participants.length}');
-}
-
-
-void borrowResource() {
-  print('\nBORROW RESOURCE');
-
-
-  if (resources.isEmpty || participants.isEmpty) {
-    print('Please add a resource and register a participant first.');
-    return;
-  }
-
-
-  int participantId = getInteger('Enter Participant ID: ');
-
-
-  Participant? participant = participantMap[participantId];
-
-
-  if (participant == null) {
-    print('Participant not found!');
-    return;
-  }
-
-
-  int resourceId = getInteger('Enter Resource ID: ');
-
-
-  LearningResource? resource = resourceMap[resourceId];
-
-
-  if (resource == null) {
-    print('Resource not found!');
-    return;
-  }
-
-
-  if (resource.availableCopies > 0) {
-    resource.borrowResource();
-    participant.borrowItem();
-    print('${participant.name} borrowed ${resource.name}.');
-  } else {
-    print('Transaction unsuccessful. No copies available.');
-  }
-}
-
-
-void returnResource() {
-  print('\nRETURN RESOURCE');
-
-
-  if (resources.isEmpty || participants.isEmpty) {
-    print('No records available.');
-    return;
-  }
-
-
-  int participantId = getInteger('Enter Participant ID: ');
-
-
-  Participant? participant = participantMap[participantId];
-
-
-  if (participant == null) {
-    print('Participant not found!');
-    return;
-  }
-
-
-  int resourceId = getInteger('Enter Resource ID: ');
-
-
-  LearningResource? resource = resourceMap[resourceId];
-
-
-  if (resource == null) {
-    print('Resource not found!');
-    return;
-  }
-
-
-  if (participant.borrowedResources <= 0) {
-    print('This participant has no borrowed resources.');
-    return;
-  }
-
-
-  participant.returnItem();
-  resource.returnResource();
-
-
-  print('${participant.name} returned ${resource.name}.');
-}
-
-
-void displayMenu() {
-  print('======================================');
-  print('     COMMUNITY LEARNING CENTER SYSTEM');
-  print('======================================');
-  print('1. Add Learning Resource');
-  print('2. Register Participant');
-  print('3. View All Records');
-  print('4. Borrow Resource');
-  print('5. Return Resource');
-  print('6. Exit');
-  print('======================================');
+  stdout.write(message);
+  return stdin.readLineSync()?.trim() ?? '';
 }
 
 
 void main() {
+  LearningCenter center = LearningCenter();
   bool running = true;
 
+  print('\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+  print(' COMMUNITY LEARNING CENTER MANAGEMENT');
+  print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
   while (running) {
-    displayMenu();
+    print('\n--------------- MAIN MENU ---------------');
+    print('1. Add Learning Resource');
+    print('2. Register Participant');
+    print('3. Borrow Learning Resource');
+    print('4. Return Learning Resource');
+    print('5. View All Records');
+    print('6. Exit');
+    print('-----------------------------------------');
+    try {
+      String choice = getInput('Enter your choice: ');
+      switch (choice) {
+        case '1':
+          String id = getInput('Enter Resource ID: ');
+          String title = getInput('Enter Resource Title: ');
+          String category = getInput('Enter Category: ');
 
+          if (center.addResource(id, title, category)) {
+            print('Learning resource added successfully!');
+          } else {
+            print('Invalid input or duplicate Resource ID.');
+          }
+          break;
 
-    String choice = getInput('Enter your choice (1-6): ');
+        case '2':
+          String id = getInput('Enter Participant ID: ');
+          String name = getInput('Enter Participant Name: ');
+          String contact = getInput('Enter Contact Number: ');
+          if (center.registerParticipant(id, name, contact)) {
+            print('Participant registered successfully!');
+          } else {
+            print('Invalid input or duplicate Participant ID.');
+          }
+          break;
 
+        case '3':
+          String resourceId = getInput('Enter Resource ID: ');
+          String participantId = getInput('Enter Participant ID: ');
+          print(center.borrowResource(resourceId, participantId));
+          break;
 
-    switch (choice) {
-      case '1':
-        addResource();
-        break;
+        case '4':
+          String resourceId = getInput('Enter Resource ID: ');
+          print(center.returnResource(resourceId));
+          break;
 
+        case '5':
+          center.viewRecords();
+          break;
 
-      case '2':
-        registerParticipant();
-        break;
+        case '6':
+          running = false;
+          print('Thank you for using the system!');
+          break;
 
-
-      case '3':
-        viewRecords();
-        break;
-
-
-      case '4':
-        borrowResource();
-        break;
-
-
-      case '5':
-        returnResource();
-        break;
-
-
-      case '6':
-        print('\nThank you for using the system!');
-        print('Program terminated successfully.');
-        running = false;
-        break;
-
-
-      default:
-        print('\nInvalid menu choice! Please select 1-6.');
+        default:
+          print('Invalid choice! Please select from 1 to 6.');
+      }
+    } catch (e) {
+      print('An error occurred: $e');
     }
   }
 }
